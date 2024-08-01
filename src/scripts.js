@@ -29,8 +29,10 @@ var stats = document.querySelector('#stats-section');
 var gameOverBox = document.querySelector('#game-over-section');
 var gameOverHeading = document.querySelector('#game-over-heading')
 var gameOverInfo = document.querySelector('#game-over-text');
-// var gameOverGuessCount = document.querySelector('#game-over-guesses-count');
-// var gameOverGuessGrammar = document.querySelector('#game-over-guesses-plural');
+var statsTotalGames = document.querySelector('#stats-total-games');
+var statsPercentCorrect = document.querySelector('#stats-percent-correct');
+var statsAverageGuesses = document.querySelector('#stats-average-guesses');
+
 
 // Event Listeners
 window.addEventListener('load', setGame);
@@ -198,6 +200,7 @@ function endGame() {
 
 function recordGameStats(result) {
   gamesPlayed.push({ solved: result, guesses: currentRow });
+  changeStatText();
 }
 
 function changeGameOverText() {
@@ -213,6 +216,21 @@ function changeGameOverText() {
     gameOverHeading.textContent = "Ouch!"
     gameOverInfo.textContent = `Better luck next time! The correct word was... ${winningWord}!`
   }
+}
+
+function changeStatText() {
+  const totalGames = gamesPlayed.length;
+  const wonGames = gamesPlayed.filter(game => game.solved);
+  const percentCorrect = wonGames.length / totalGames * 100
+  const guesses = wonGames.map(game => game.guesses)
+  const sumOfGuesses = guesses.reduce((acc, curr) => {
+    acc += curr;
+    return acc;
+  }, 0)
+  const averageGuesses = sumOfGuesses / guesses.length
+  statsTotalGames.textContent = totalGames;
+  statsPercentCorrect.textContent = percentCorrect;
+  statsAverageGuesses.textContent = averageGuesses;
 }
 
 function startNewGame() {
