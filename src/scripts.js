@@ -1,6 +1,12 @@
 import './styles.css';
 import './assets/turdle-turtle.png';
-import { words } from './words.js';
+// import { words } from './words.js';
+const words = [];
+
+fetch("http://localhost:3001/api/v1/words")
+  .then(response => response.json())
+  .then(data => words.push(...data))
+  .catch(err => console.log(err));
 
 // Global Variables
 var winningWord = '';
@@ -21,8 +27,10 @@ var letterKey = document.querySelector('#key-section');
 var rules = document.querySelector('#rules-section');
 var stats = document.querySelector('#stats-section');
 var gameOverBox = document.querySelector('#game-over-section');
-var gameOverGuessCount = document.querySelector('#game-over-guesses-count');
-var gameOverGuessGrammar = document.querySelector('#game-over-guesses-plural');
+var gameOverHeading = document.querySelector('#game-over-heading')
+var gameOverInfo = document.querySelector('#game-over-text');
+// var gameOverGuessCount = document.querySelector('#game-over-guesses-count');
+// var gameOverGuessGrammar = document.querySelector('#game-over-guesses-plural');
 
 // Event Listeners
 window.addEventListener('load', setGame);
@@ -47,6 +55,7 @@ viewStatsButton.addEventListener('click', viewStats);
 function setGame() {
   currentRow = 1;
   winningWord = getRandomWord();
+  console.log(winningWord)
   updateInputPermissions();
 }
 
@@ -63,16 +72,18 @@ function updateInputPermissions() {
       inputs[i].disabled = false;
     }
   }
-
   inputs[0].focus();
 }
 
 function moveToNextInput(e) {
   var key = e.keyCode || e.charCode;
 
-  if (key !== 8 && key !== 46) {
+  if (key !== 8 && key !== 46) { // if not backspace and delete
     var indexOfNext = parseInt(e.target.id.split('-')[2]) + 1;
-    inputs[indexOfNext].focus();
+    if (inputs.length > indexOfNext) { // added - stop changing focus if there's no next input
+      inputs[indexOfNext].focus();
+    }
+
   }
 }
 
@@ -86,9 +97,12 @@ function clickLetter(e) {
       activeIndex = i;
     }
   }
-
+  // after clicking the letter, focus on next input
   activeInput.value = e.target.innerText;
-  inputs[activeIndex + 1].focus();
+  if (inputs.length > activeIndex + 1) { //added - stop changing focus if there's no next input
+    inputs[activeIndex + 1].focus();
+  }
+
 }
 
 function submitGuess() {
@@ -96,14 +110,21 @@ function submitGuess() {
     errorMessage.innerText = '';
     compareGuess();
     if (checkForWin()) {
-      setTimeout(declareWinner, 1000);
-    } else {
+      recordGameStats(checkForWin())
+      setTimeout(endGame, 1000);
+
+    } else if (currentRow < 6) {
       changeRow();
+    } else {
+      recordGameStats(checkForWin())
+      setTimeout(endGame, 1000);
     }
   } else {
     errorMessage.innerText = 'Not a valid word. Try again!';
   }
 }
+
+
 
 function checkIsWord() {
   guess = '';
@@ -169,23 +190,28 @@ function changeRow() {
   updateInputPermissions();
 }
 
-function declareWinner() {
-  recordGameStats();
+function endGame() {
   changeGameOverText();
   viewGameOverMessage();
   setTimeout(startNewGame, 4000);
 }
 
-function recordGameStats() {
-  gamesPlayed.push({ solved: true, guesses: currentRow });
+function recordGameStats(result) {
+  gamesPlayed.push({ solved: result, guesses: currentRow });
 }
 
 function changeGameOverText() {
-  gameOverGuessCount.innerText = currentRow;
-  if (currentRow < 2) {
-    gameOverGuessGrammar.classList.add('collapsed');
-  } else {
-    gameOverGuessGrammar.classList.remove('collapsed');
+  if (gamesPlayed[gamesPlayed.length - 1].solved) {
+    let gameOverGuessGrammar = "";
+    if (currentRow >= 2) {
+      gameOverGuessGrammar = "es"
+    } 
+    gameOverHeading.textContent = "Yay!"
+    gameOverInfo.textContent = `You did it! It took you ${currentRow} guess${gameOverGuessGrammar} to find the correct word.`
+  }
+  else {
+    gameOverHeading.textContent = "Ouch!"
+    gameOverInfo.textContent = `Better luck next time! The correct word was... ${winningWord}!`
   }
 }
 
