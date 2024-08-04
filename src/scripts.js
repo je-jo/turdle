@@ -12,7 +12,6 @@ fetch("http://localhost:3001/api/v1/words")
 var winningWord = '';
 var currentRow = 1;
 var guess = '';
-var gamesPlayed = [];
 
 // Query Selectors
 var inputs = document.querySelectorAll('input');
@@ -124,7 +123,7 @@ function submitGuess() {
 function checkIsWord() {
   guess = '';
   inputs.forEach(input => {
-    if(input.id.includes(`-${currentRow}-`)) {
+    if (input.id.includes(`-${currentRow}-`)) {
       guess += input.value
     }
   })
@@ -171,7 +170,7 @@ function updateKeyColor(letter, className) {
       keySpan = keyLetter;
     }
   })
-  
+
   keySpan.classList.add(className);
 }
 
@@ -191,12 +190,26 @@ function endGame() {
 }
 
 function recordGameStats(result) {
-  gamesPlayed.push({ solved: result, guesses: currentRow });
+  fetch("http://localhost:3001/api/v1/games	", {
+    method: 'POST',
+    body: JSON.stringify(
+      {
+        solved: result,
+        guesses: currentRow
+      }
+    ),
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+    .then(response => response.json())
+    // .then(json => console.log(json))
+    .catch(err => console.log(err));
   changeStatText();
 }
 
 function changeGameOverText() {
-  if (gamesPlayed[gamesPlayed.length - 1].solved) {
+  if (checkForWin()) {
     let gameOverGuessGrammar = "";
     if (currentRow >= 2) {
       gameOverGuessGrammar = "es"
@@ -211,18 +224,23 @@ function changeGameOverText() {
 }
 
 function changeStatText() {
-  const totalGames = gamesPlayed.length;
-  const wonGames = gamesPlayed.filter(game => game.solved);
-  const percentCorrect = Math.round((wonGames.length / totalGames * 100) * 100) / 100
-  const guesses = wonGames.map(game => game.guesses)
-  const sumOfGuesses = guesses.reduce((acc, curr) => {
-    acc += curr;
-    return acc;
-  }, 0)
-  const averageGuesses = Math.round((sumOfGuesses / guesses.length) * 100) / 100
-  statsTotalGames.textContent = totalGames;
-  statsPercentCorrect.textContent = percentCorrect;
-  statsAverageGuesses.textContent = averageGuesses;
+  fetch("http://localhost:3001/api/v1/games")
+    .then(response => response.json())
+    .then(data => {
+      const totalGames = data.length;
+      const wonGames = data.filter(game => game.solved);
+      const percentCorrect = Math.round((wonGames.length / totalGames * 100) * 100) / 100
+      const guesses = wonGames.map(game => game.numGuesses)
+      const sumOfGuesses = guesses.reduce((acc, curr) => {
+        acc += curr;
+        return acc;
+      }, 0);
+      const averageGuesses = Math.round((sumOfGuesses / guesses.length) * 100) / 100
+      statsTotalGames.textContent = totalGames;
+      statsPercentCorrect.textContent = percentCorrect;
+      statsAverageGuesses.textContent = averageGuesses;
+    })
+    .catch(err => console.log(err))
 }
 
 function startNewGame() {
